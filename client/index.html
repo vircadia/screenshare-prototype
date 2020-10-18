@@ -46,6 +46,7 @@
         <canvas onClick="location.reload();" id="mainPlayer"></canvas>
 
         <script src="./decoder.js"></script>
+        <script src="./jquery-3.5.1.min.js"></script>
 
         <script>
             function setProp() {
@@ -93,33 +94,56 @@
                     pauseWhenHidden: false, 
                     onPlay: setPadding, 
                     throttled: false,
-                    wsSource: 'ws://3.230.154.144:8021/'
+                    wsSource: 'ws://127.0.0.1:8021/'
                 };
+
+                var wsSourceSpecified = false;
 
                 location.href.replace(/\b(wsSource|secret|audioBufferSize|videoBufferSize|chunkSize|maxAudioLag)=([^&]+)/g, function(_, k, v) {
                     v = unescape(v);
                     if (isFinite(v)) v = parseFloat(v);
                     console.info('overriding option', k, v);
                     options[k] = v;
+                    if (k == 'wsSource') {
+                        wsSourceSpecified = true;
+                    }
                 });
 
                 console.info('options', options);
-                player = new JSMpeg.Player(options.wsSource + options.secret, options);
+                if (!wsSourceSpecified) {
+                    $.ajax({
+                        type: 'GET',
+                        url: '/api/wsSource',
+                        contentType: 'application/json'
+                    })
+                        .done(function (result) {
+                            options.wsSource = result.wsSource;
+                            initPlayer();
+                        })
+                        .fail(function (result) {
+                            initPlayer();
+                        })
+                } else {
+                    initPlayer();
+                }
                 
-                player.volume = 0.7;
+                function initPlayer() {
+                    player = new JSMpeg.Player(options.wsSource + options.secret, options);
+                    player.volume = 0.7;
+                }
 
                 var shouldScale = false;
                 function setPadding() {
                     if (!shouldScale) return;
                     var w = window.innerWidth;
                     var h = window.innerHeight;
-
+                
                     setTimeout(function() {
                         var canvasheight = canvas.height;
                         var canvaswidth = canvas.width;
                         var newHeightPadding = (h - canvasheight) / 2;
                         var newWidthPadding = (w - canvaswidth) / 2;
-
+                
                         //DO NOT SET IF RUNNING IN Vircadia
                         if(!navigator.userAgent.includes('QtWebEngine')) {
                             pageBody.style.padding = newHeightPadding + 'px ' + newWidthPadding + 'px';
@@ -128,7 +152,5 @@
                 }
             }
         </script>
-        <!--<div class="jsmpeg" data-url="ws://76.240.242.242:8021/" data-videoBufferSize="8500*1024" data-chunkSize="8500*1024" data-audioBufferSize="256*1024"></div>-->
-
     </body>
 </html>

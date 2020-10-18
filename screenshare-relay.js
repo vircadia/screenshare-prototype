@@ -23,6 +23,7 @@ var fs = require('fs');
 var express = require('express');
 var http = require('http');
 const path = require('path');
+const publicIp = require('public-ip');
 WebSocket = require('ws');
 
 var server = express();
@@ -133,14 +134,22 @@ var streamServer = http.createServer( function (request, response) {
 }).listen(STREAM_PORT);
 
 // Client HTTP Server
+var serverPublicIP;
+
 server.get('/api/wsSource', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ wsSource: '' }));
+    res.end(JSON.stringify({ wsSource: 'ws://' + serverPublicIP + '/' }));
     next();
 });
 server.use('/', express.static(path.join(__dirname + '/client')));
 server.listen(CLIENT_HTTP_PORT);
 
-console.log('Listening for incoming MPEG-TS Stream on http://127.0.0.1:' + STREAM_PORT + '/' + STREAM_SECRET);
-console.log('Awaiting WebSocket connections on ws://127.0.0.1:' + WEBSOCKET_PORT + '/' + WEBSOCKET_SECRET);
-console.log('View the stream through http://127.0.0.1:' + CLIENT_HTTP_PORT + '/index.html');
+(async () => {
+    serverPublicIP = await publicIp.v4() || '127.0.0.1';
+
+    console.log('Listening for incoming MPEG-TS Stream on http://' + serverPublicIP + ':' + STREAM_PORT + '/' + STREAM_SECRET);
+    console.log('Awaiting WebSocket connections on ws://' + serverPublicIP + ':' + WEBSOCKET_PORT + '/' + WEBSOCKET_SECRET);
+    console.log('View the stream through http://' + serverPublicIP + ':' + CLIENT_HTTP_PORT + '/index.html');
+})();
+
+

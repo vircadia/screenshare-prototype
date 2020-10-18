@@ -8,6 +8,7 @@
   "author": "Kalila L.",
   "dependencies": {
     "express": "^4.17.1",
+    "public-ip": "^4.0.2",
     "ws": "2.3.1"
   }
 }

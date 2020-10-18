@@ -4,8 +4,10 @@
 
 You will need:
 
-* Windows/Linux server with NodeJS on it.
+* Windows/Linux server with NodeJS on it. (Ensure the appropriate ports are open! By default, those are 8020, 8021, and 8022)
 * OBS or ffmpeg (I've only tested with OBS so far.)
+
+Begin by cloning this repository to the location that you would like to run the server from.
 
 ### Start the Server
 

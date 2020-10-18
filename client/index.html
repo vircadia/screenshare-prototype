@@ -14,7 +14,7 @@
 
 <html lang="en">
     <head>
-        <title>Vircadia Flix</title>
+        <title>Vircadia Screenshare</title>
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
     </head>
 
@@ -83,9 +83,20 @@
                 //canvas.addEventListener('click', function(evt) { evt.shiftKey && location.reload(); }, false);
                 //canvas.addEventListener('click', function() { location.reload(); }, false);
 
-                var options = {secret: 'dev', canvas: canvas, videoBufferSize: 1024*1024, audioBufferSize: 1024*1024, chunkSize: 1024*1024, maxAudioLag: .2, pauseWhenHidden: false, onPlay: setPadding, throttled: false};
+                var options = {
+                    secret: 'open', 
+                    canvas: canvas, 
+                    videoBufferSize: 1024*1024, 
+                    audioBufferSize: 1024*1024, 
+                    chunkSize: 1024*1024, 
+                    maxAudioLag: .2, 
+                    pauseWhenHidden: false, 
+                    onPlay: setPadding, 
+                    throttled: false,
+                    wsSource: 'ws://3.230.154.144:8021/'
+                };
 
-                location.href.replace(/\b(secret|audioBufferSize|videoBufferSize|chunkSize|maxAudioLag)=([^&]+)/g, function(_, k, v) {
+                location.href.replace(/\b(wsSource|secret|audioBufferSize|videoBufferSize|chunkSize|maxAudioLag)=([^&]+)/g, function(_, k, v) {
                     v = unescape(v);
                     if (isFinite(v)) v = parseFloat(v);
                     console.info('overriding option', k, v);
@@ -93,26 +104,25 @@
                 });
 
                 console.info('options', options);
-                /*var*/ player = new JSMpeg.Player('ws://3.230.154.144:8021/' + options.secret, options);
+                player = new JSMpeg.Player(options.wsSource + options.secret, options);
                 
                 player.volume = 0.7;
 
+                var shouldScale = false;
                 function setPadding() {
-                    //SET TO TRUE IF YOU WANT THE FUNCTION TO WORK.
-                    var shouldScale = false;
-
+                    if (!shouldScale) return;
                     var w = window.innerWidth;
                     var h = window.innerHeight;
 
-                    setTimeout(function(){
+                    setTimeout(function() {
                         var canvasheight = canvas.height;
                         var canvaswidth = canvas.width;
                         var newHeightPadding = (h - canvasheight) / 2;
                         var newWidthPadding = (w - canvaswidth) / 2;
 
                         //DO NOT SET IF RUNNING IN Vircadia
-                        if(!navigator.userAgent.includes("QtWebEngine") && shouldScale == true) {
-                            pageBody.style.padding = newHeightPadding + "px " + newWidthPadding + "px";
+                        if(!navigator.userAgent.includes('QtWebEngine')) {
+                            pageBody.style.padding = newHeightPadding + 'px ' + newWidthPadding + 'px';
                         }
                     }, 50);
                 }

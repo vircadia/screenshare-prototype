@@ -19,9 +19,13 @@ if (typeof(PhusionPassenger) != 'undefined') {
     PhusionPassenger.configure({ autoInstall: false });
 }
 
-var fs = require('fs'),
-http = require('http'),
+var fs = require('fs');
+var express = require('express');
+var http = require('http');
+const path = require('path');
 WebSocket = require('ws');
+
+var server = express();
 
 function getArgs() {
     const args = process.argv.slice(2);
@@ -128,7 +132,14 @@ var streamServer = http.createServer( function (request, response) {
     
 }).listen(STREAM_PORT);
 
-
+// Client HTTP Server
+server.get('/api/wsSource', (req, res, next) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ wsSource: '' }));
+    next();
+});
+server.use('/', express.static(path.join(__dirname + '/client')));
+server.listen(CLIENT_HTTP_PORT);
 
 console.log('Listening for incoming MPEG-TS Stream on http://127.0.0.1:' + STREAM_PORT + '/' + STREAM_SECRET);
 console.log('Awaiting WebSocket connections on ws://127.0.0.1:' + WEBSOCKET_PORT + '/' + WEBSOCKET_SECRET);

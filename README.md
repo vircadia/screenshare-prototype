@@ -1,1 +1,2 @@
-# Screen Share Protype for Vircadia
+# Screenshare Prototype for Vircadia
+

@@ -14,107 +14,118 @@
 // node websocket-relay yoursecret 8081 8082
 // ffmpeg -i <some input> -f mpegts http://localhost:8081/yoursecret
 
+// This is to help it work on Plesk.
 if (typeof(PhusionPassenger) != 'undefined') {
     PhusionPassenger.configure({ autoInstall: false });
 }
 
 var fs = require('fs'),
-	http = require('http'),
-	WebSocket = require('ws');
+http = require('http'),
+WebSocket = require('ws');
 
-if (process.argv.length < 3) {
-	console.log(
-		'Usage: \n' +
-		'node websocket-relay.js <secret> [<stream-port> <websocket-port>]'
-	);
-//	process.exit();
+function getArgs() {
+    const args = process.argv.slice(2);
+    let params = {};
+    
+    args.forEach(a => {
+        const nameValue = a.split("=");
+        params[nameValue[0]] = nameValue[1];
+    });
+    
+    return params;
 }
 
-var STREAM_SECRET = "",
-	//process.argv[2],
-	//STREAM_SECRET = "flixupstream",
-	STREAM_PORT = process.argv[3] || 8020,
-	//STREAM_PORT = 8020,
-	WEBSOCKET_PORT = process.argv[4] || 8021,
-	//WEBSOCKET_PORT = 8021,
-  WEBSOCKET_SECRETPATH = process.argv[5] || "kasenflix",
-	RECORD_STREAM = false;
+if (process.argv.length < 3) {
+    console.log(
+        'Usage: \n' +
+        'node websocket-relay.js stream_port=<stream-port> stream_secret=<stream-secret> ws_port=<websocket-port> ws_secret=<websocket-secret>'
+    );
+    //	process.exit();
+}
+
+const args = getArgs();
+var STREAM_PORT = args.stream_port || 8020;
+var STREAM_SECRET = args.stream_secret || "open";
+var WEBSOCKET_PORT = args.ws_port || 8021;
+var WEBSOCKET_SECRET = args.ws_secret || "open";
+var RECORD_STREAM = false;
 
 // Websocket Server
-var socketServer = new WebSocket.Server({path: "/" + WEBSOCKET_SECRETPATH, port: WEBSOCKET_PORT, perMessageDeflate: false});
+var socketServer = new WebSocket.Server({path: "/" + WEBSOCKET_SECRET, port: WEBSOCKET_PORT, perMessageDeflate: false});
+
 socketServer.connectionCount = 0;
+
 socketServer.on('connection', function(socket, upgradeReq) {
     //RESTRICTED CONNECTION PARAMETERS
-    //if(client.headers['user-agent'].includes("NT 10.0") == true) {
-      socketServer.connectionCount++;
+    //if(client.headers['user-agent'].includes("NT 10.0") == true)
+    socketServer.connectionCount++;
 
-
-    	console.log(
-    		'New WebSocket Client Connection: ',
-    		(upgradeReq || socket.upgradeReq).socket.remoteAddress,
-    		(upgradeReq || socket.upgradeReq).headers['user-agent'],
-    		'('+socketServer.connectionCount+' total)'
-    //}
-	);
-	socket.on('close', function(code, message){
-		socketServer.connectionCount--;
-		console.log(
-			'Disconnected WebSocket ('+socketServer.connectionCount+' total)'
-		);
-	});
+    console.log(
+        'New WebSocket Client Connection: ',
+        (upgradeReq || socket.upgradeReq).socket.remoteAddress,
+        (upgradeReq || socket.upgradeReq).headers['user-agent'],
+        '('+socketServer.connectionCount+' total)'
+    );
+    socket.on('close', function(code, message){
+        socketServer.connectionCount--;
+        console.log(
+            'Disconnected WebSocket ('+socketServer.connectionCount+' total)'
+        );
+    });
 });
+
 socketServer.broadcast = function(data) {
-	socketServer.clients.forEach(function each(client) {
-		if (client.readyState === WebSocket.OPEN) {
-
-          client.send(data);
-
-		}
-	});
+    socketServer.clients.forEach(function each(client) {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(data);
+        }
+    });
 };
 
-// HTTP Server to accept incoming MPEG-TS Stream from ffmpeg
-var streamServer = http.createServer( function(request, response) {
+// HTTP Server to accept incoming MPEG-TS Stream from ffmpeg / OBS
+var streamServer = http.createServer( function (request, response) {
+    
+    var params = request.url.substr(1).split('/');
+    
+    if (params[0] !== STREAM_SECRET) {
+        console.log(
+            'Failed Stream Connection: '+ request.socket.remoteAddress + ':' +
+            request.socket.remotePort + ' - wrong secret.'
+        );
+        response.end();
+    }
+    
+    response.connection.setTimeout(0);
+    console.log(
+        'Stream Connected: ' +
+        request.socket.remoteAddress + ':' +
+        request.socket.remotePort
+        //request.socket.headers['user-agent']
+    );
 
-	var params = request.url.substr(1).split('/');
+    request.on('data', function(data){
+        socketServer.broadcast(data);
+        if (request.socket.recording) {
+            request.socket.recording.write(data);
+        }
+    });
 
-	if (params[0] !== STREAM_SECRET) {
-		console.log(
-			'Failed Stream Connection: '+ request.socket.remoteAddress + ':' +
-			request.socket.remotePort + ' - wrong secret.'
-		);
-		response.end();
-	}
-
-	response.connection.setTimeout(0);
-	console.log(
-		'Stream Connected: ' +
-		request.socket.remoteAddress + ':' +
-		request.socket.remotePort
-    //request.socket.headers['user-agent']
-	);
-	request.on('data', function(data){
-		socketServer.broadcast(data);
-		if (request.socket.recording) {
-			request.socket.recording.write(data);
-		}
-	});
-	request.on('end',function(){
-		console.log('close');
-		if (request.socket.recording) {
-			request.socket.recording.close();
-		}
-	});
-
-	// Record the stream to a local file?
-	if (RECORD_STREAM) {
-		var path = 'recordings/' + Date.now() + '.ts';
-		request.socket.recording = fs.createWriteStream(path);
-	}
-
-	//server.listen('passenger');
-
+    request.on('end',function(){
+        console.log('close');
+        if (request.socket.recording) {
+            request.socket.recording.close();
+        }
+    });
+    
+    // Record the stream to a local file?
+    if (RECORD_STREAM) {
+        var path = 'recordings/' + Date.now() + '.ts';
+        request.socket.recording = fs.createWriteStream(path);
+    }
+    
+    //server.listen('passenger');
+    
 }).listen(STREAM_PORT);
 
-console.log('Listening for incoming MPEG-TS Stream on http://127.0.0.1:'+STREAM_PORT+'/' + STREAM_SECRET);
-console.log('Awaiting WebSocket connections on ws://127.0.0.1:'+WEBSOCKET_PORT+'/'+WEBSOCKET_SECRETPATH);
+console.log('Listening for incoming MPEG-TS Stream on http://127.0.0.1:' + STREAM_PORT + '/' + STREAM_SECRET);
+console.log('Awaiting WebSocket connections on ws://127.0.0.1:' + WEBSOCKET_PORT + '/' + WEBSOCKET_SECRET);

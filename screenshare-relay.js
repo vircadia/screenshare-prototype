@@ -138,7 +138,7 @@ var serverPublicIP;
 
 server.get('/api/wsSource', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ wsSource: 'ws://' + serverPublicIP + '/' }));
+    res.end(JSON.stringify({ wsSource: 'ws://' + serverPublicIP + ':' + WEBSOCKET_PORT + '/' }));
     next();
 });
 server.use('/', express.static(path.join(__dirname + '/client')));

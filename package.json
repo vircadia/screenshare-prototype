@@ -1,0 +1,12 @@
+{
+  "name": "vircadia_screenshare_relay",
+  "version": "1.0.0",
+  "description": "Vircadia Screenshare Relay",
+  "scripts": {
+    "start": "node websocket-relay.js flixupstream 8020 8021"
+  },
+  "author": "Kalila L.",
+  "dependencies": {
+    "ws": "2.3.1"
+  }
+}

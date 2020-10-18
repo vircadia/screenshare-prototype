@@ -1,0 +1,124 @@
+<!--
+//
+//  index.html
+//
+//  Created by Kalila L. on 17 Oct 2020
+//  Copyright 2020 Vircadia and contributors.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+-->
+
+<!doctype html>
+
+<html lang="en">
+    <head>
+        <title>Vircadia Flix</title>
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+    </head>
+
+    <style>
+        body {
+            background: rgba(0,0,0,1.0);
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #mainPlayer {
+            /*width: 1920px !important;
+            height: 1080px !important;*/
+            max-width: 100% !important;
+            float: left;
+        }
+    </style>
+
+    <body onload="initialize()" id="vircadiaBody">
+        <select id="propName" onchange="loadVal()">
+            <option value="audioBufferSize">audioBufferSize</option>
+            <option value="videoBufferSize">videoBufferSize</option>
+            <option value="chunkSize">chunkSize</option>
+            <option value="maxAudioLag">maxAudioLag</option>
+        </select>
+        <input id="propValue" type="text" id="name" name="name" minlength="4" maxlength="8" size="10">
+        <i style="color: white;" onclick="setProp()" class="fas fa-location-arrow fa-lg"></i>
+      
+        <canvas onClick="location.reload();" id="mainPlayer"></canvas>
+
+        <script src="./decoder.js"></script>
+
+        <script>
+            function setProp() {
+                var properties = new URL(document.location);
+                var property = document.getElementById("propName").value;
+                var value = document.getElementById("propValue").value;
+
+                if (property == "chunkSize" || property == "videoBufferSize" || property == "audioBufferSize") {
+                    valint = parseInt(value);
+                    value = valint * 1024;
+                }
+
+                properties.searchParams.set(property, value);
+                document.location = properties;
+            }
+
+            function loadVal() {
+                var property = document.getElementById("propName").value;
+
+                var properties = new URL(document.location);
+                var value = properties.searchParams.get(property);
+
+                if (property == "chunkSize" || property == "videoBufferSize" || property == "audioBufferSize") {
+                    valint = parseInt(value);
+                    value = valint / 1024;
+                }
+
+                document.getElementById("propValue").value = value;
+            }
+
+            function initialize() {
+                var canvas = document.getElementById('mainPlayer');
+                var pageBody = document.getElementById('vircadiaBody');
+
+                //canvas.addEventListener('click', function(evt) { evt.shiftKey && location.reload(); }, false);
+                //canvas.addEventListener('click', function() { location.reload(); }, false);
+
+                var options = {secret: 'dev', canvas: canvas, videoBufferSize: 1024*1024, audioBufferSize: 1024*1024, chunkSize: 1024*1024, maxAudioLag: .2, pauseWhenHidden: false, onPlay: setPadding, throttled: false};
+
+                location.href.replace(/\b(secret|audioBufferSize|videoBufferSize|chunkSize|maxAudioLag)=([^&]+)/g, function(_, k, v) {
+                    v = unescape(v);
+                    if (isFinite(v)) v = parseFloat(v);
+                    console.info('overriding option', k, v);
+                    options[k] = v;
+                });
+
+                console.info('options', options);
+                /*var*/ player = new JSMpeg.Player('ws://3.230.154.144:8021/' + options.secret, options);
+                
+                player.volume = 0.7;
+
+                function setPadding() {
+                    //SET TO TRUE IF YOU WANT THE FUNCTION TO WORK.
+                    var shouldScale = false;
+
+                    var w = window.innerWidth;
+                    var h = window.innerHeight;
+
+                    setTimeout(function(){
+                        var canvasheight = canvas.height;
+                        var canvaswidth = canvas.width;
+                        var newHeightPadding = (h - canvasheight) / 2;
+                        var newWidthPadding = (w - canvaswidth) / 2;
+
+                        //DO NOT SET IF RUNNING IN Vircadia
+                        if(!navigator.userAgent.includes("QtWebEngine") && shouldScale == true) {
+                            pageBody.style.padding = newHeightPadding + "px " + newWidthPadding + "px";
+                        }
+                    }, 50);
+                }
+            }
+        </script>
+        <!--<div class="jsmpeg" data-url="ws://76.240.242.242:8021/" data-videoBufferSize="8500*1024" data-chunkSize="8500*1024" data-audioBufferSize="256*1024"></div>-->
+
+    </body>
+</html>

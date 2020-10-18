@@ -38,7 +38,7 @@ function getArgs() {
 if (process.argv.length < 3) {
     console.log(
         'Usage: \n' +
-        'node websocket-relay.js stream_port=<stream-port> stream_secret=<stream-secret> ws_port=<websocket-port> ws_secret=<websocket-secret>'
+        'node websocket-relay.js stream_port=<stream-port> stream_secret=<stream-secret> ws_port=<websocket-port> ws_secret=<websocket-secret> client_http_port=<client-http-web-port>'
     );
     //	process.exit();
 }
@@ -48,6 +48,7 @@ var STREAM_PORT = args.stream_port || 8020;
 var STREAM_SECRET = args.stream_secret || "open";
 var WEBSOCKET_PORT = args.ws_port || 8021;
 var WEBSOCKET_SECRET = args.ws_secret || "open";
+var CLIENT_HTTP_PORT = args.client_http_port || 8022;
 var RECORD_STREAM = false;
 
 // Websocket Server
@@ -127,5 +128,8 @@ var streamServer = http.createServer( function (request, response) {
     
 }).listen(STREAM_PORT);
 
+
+
 console.log('Listening for incoming MPEG-TS Stream on http://127.0.0.1:' + STREAM_PORT + '/' + STREAM_SECRET);
 console.log('Awaiting WebSocket connections on ws://127.0.0.1:' + WEBSOCKET_PORT + '/' + WEBSOCKET_SECRET);
+console.log('View the stream through http://127.0.0.1:' + CLIENT_HTTP_PORT + '/index.html');
